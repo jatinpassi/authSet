@@ -17,24 +17,45 @@ router.get('/signup', function(req, res, next) {
     res.render('index', { load:"signup" });
 });
 router.post('/signup', function(req, res, next) {
-    req.checkBody('username',"Username cannot be empty").isEmpty();
     req.checkBody('username',"Username must have length between 5-100").isLength(5,100);
+    req.checkBody('username',"Username cannot be empty").notEmpty();
     req.checkBody('email',"Invalid email formate").isEmail();
     req.checkBody('pwd',"password must have length between 5-100").isLength(5,100);
     req.checkBody('pwd',"password must include one lowercase character, one uppercase character, a number and a special character")
         .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.* )(?=.*[^a-zA-Z0-9]).{8,}$/,"i");
-    req.checkBody('pwd2',"Password do not match").equals(req.body.pwd);
+    req.checkBody('pwd2',"Password do not match, Please re-enter your password").equals(req.body.pwd);
     const error = req.validationErrors();
 
     const username = req.body.username;
     const email = req.body.email;
-    const pwd = req.body.pwd;
-    const pwd2 = req.body.pwd2;
-    var reqElement = {username , email,pwd,pwd2};
-    console.log(error.length);
+    var reqElement = [];
+    reqElement.push(username);
+    reqElement.push(email);
     if(error){
-        res.render('index', { load:"signup",error : error, reqElement :reqElement });
+        var username_err = []
+        var email_err = []
+        var pwd_err = []
+        var pwd2_err = []
+        for (var i=0;i<error.length;i++){
+            if (error[i].param == 'username'){
+                username_err.push(error[i].msg);
+            }else if (error[i].param == 'email'){
+                email_err.push(error[i].msg);
+            }else if (error[i].param == 'pwd'){
+                pwd_err.push(error[i].msg);
+            }else if (error[i].param == 'pwd2'){
+                pwd2_err.push(error[i].msg);
+            }
+        }
+        var main_error = [];
+        main_error.push(username_err);
+        main_error.push(email_err);
+        main_error.push(pwd_err);
+        main_error.push(pwd2_err);
+        res.render('index', { load:"signup",error : main_error, reqElement :reqElement });
     }else{
+        const pwd = req.body.pwd;
+        const pwd2 = req.body.pwd2;
         const connection = require('../db');
         connection.query('INSERT INTO `user`( `username`, `email`, `password`) VALUES(?,?,?)',[username,email,pwd], function (error, results, fields) {
             if (error) throw error;
