@@ -1,19 +1,26 @@
 var express = require('express');
+var passport = require('passport');
 const { check, validationResult } = require('express-validator/check');
 const { matchedData, sanitize } = require('express-validator/filter');
 var router = express.Router();
+
+var bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
     res.redirect("/index");
 });
 router.get('/index', function(req, res, next) {
+    console.log(req.user);
+    console.log(req.isAuthenticated());
     res.render('index', { load:"content" , error:true});
 });
 router.get('/login', function(req, res, next) {
     res.render('index', { load:"content" });
 });
 router.get('/signup', function(req, res, next) {
+
     res.render('index', { load:"signup" });
 });
 router.post('/signup', function(req, res, next) {
@@ -55,20 +62,38 @@ router.post('/signup', function(req, res, next) {
         res.render('index', { load:"signup",error : main_error, reqElement :reqElement });
     }else{
         const pwd = req.body.pwd;
-        const pwd2 = req.body.pwd2;
         const connection = require('../db');
-        connection.query('INSERT INTO `user`( `username`, `email`, `password`) VALUES(?,?,?)',[username,email,pwd], function (error, results, fields) {
-            if (error) throw error;
-            console.log('The solution is: ', results[0].solution);
+        bcrypt.hash(pwd, saltRounds, function(err, hash) {
+            connection.query('INSERT INTO `user`( `username`, `email`, `password`) VALUES(?,?,?)',[username,email,hash], function (error, results, fields) {
+                //if (error) console.log(error);
+
+               connection.query("SELECT LAST_INSERT_ID() as user_id",(error, results, fields)=>{
+                     //if (error) res.redirect("/signup");
+
+                   const user_id = results[0];
+
+                    req.login(user_id,function (err) {
+                         res.redirect("/");
+                     });
+                 });
+            });
         });
-        res.render('index', { load:"signup" });
     }
-
-
-
 });
-router.get('/profile', function(req, res, next) {
-    res.render('index', { load:"content" });
+router.get('/profile',authenticationMiddleware(), function(req, res, next) {
+    res.render('index', { load:"profile" });
+});
+passport.serializeUser(function(user_id, done) {
+    done(null, user_id);
 });
 
+passport.deserializeUser(function(user_id, done) {
+        done(null, user_id);
+});
+function authenticationMiddleware(){
+    return (req, res, next)=>{
+        if (req.isAuthenticated()) return next();
+        else res.redirect('/login');
+    }
+}
 module.exports = router;

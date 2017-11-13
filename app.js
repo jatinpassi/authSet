@@ -5,11 +5,24 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 const expressValidator = require("express-validator");
+var session = require('express-session');
+var passport = require('passport');
 var index = require('./routes/index');
 var users = require('./routes/users');
+var MySQLStore = require('express-mysql-session')(session);
 
 var app = express();
 
+require('dotenv').config({path: ''})
+
+var options = {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
+};
+
+var sessionStore = new MySQLStore(options);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -20,6 +33,18 @@ app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+
+app.use(session({
+    key: 'session_cookie_name',
+    secret: 'mySecreteCode',
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    //cookie: { secure: true }
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(expressValidator());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
