@@ -29,11 +29,12 @@
               <% }%>
                 <a class="nav-link" href="/">Home</a>
               </li>
+              <% if(locals.isUnAuth){%>
               <% if (locals.load == "login"){%>
               <li class="nav-item active">
               <% }else{ %>
               <li class="nav-item">                    
-              <% }%>
+              <%}%>
                 <a class="nav-link" href="/login">login</a>
               </li>
               <% if (locals.load == "signup"){%>
@@ -43,17 +44,19 @@
               <% }%>
                 <a class="nav-link" href="/signup">Signup</a>
               </li>
+              <% }%>
             </ul>
-            
+            <% if(locals.isAuth){ %>
             <ul class="nav navbar-nav navbar-right">
               <li class="nav-item dropdown push-right">
                 <a class="nav-link dropdown-toggle" href="jp111.ga" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Setting</a>
                 <div class="dropdown-menu" aria-labelledby="dropdown01">
                   <a class="dropdown-item" href="/profile">Profile</a>
-                  <a class="dropdown-item" href="#">Logout</a>
+                  <a class="dropdown-item" href="/logout">Logout</a>
                 </div>
               </li>
 s            </ul>
+            <% } %>
           </div>
         </nav>
         <div class="clearfix"><br><br><br><br></div>

@@ -7,9 +7,10 @@ var bodyParser = require('body-parser');
 const expressValidator = require("express-validator");
 var session = require('express-session');
 var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
 var index = require('./routes/index');
-var users = require('./routes/users');
 var MySQLStore = require('express-mysql-session')(session);
+var bcrypt = require('bcrypt');
 
 var app = express();
 
@@ -35,7 +36,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(session({
-    key: 'session_cookie_name',
     secret: 'mySecreteCode',
     store: sessionStore,
     resave: false,
@@ -48,8 +48,40 @@ app.use(passport.session());
 app.use(expressValidator());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
+app.use(function (req,res,next) {
+    res.locals.isAuth = req.isAuthenticated();
+    res.locals.isUnAuth = req.isUnauthenticated();
+    next();
+});
 app.use('/', index);
+
+passport.use(new LocalStrategy({
+        usernameField: 'username',
+        passwordField: 'pwd'
+    },
+    function( username, password, done) {
+        const connection = require('./db');
+        connection.query('SELECT `id`, `password` FROM `user` WHERE `username` = ?',[username], function (error, results, fields) {
+            if(error) done(error);
+
+            if(results.length == 0){
+                return done(null,false);
+            }else {
+                var hash = results[0].password.toString();
+                var userId = results[0].id;
+                bcrypt.compare(password, hash, function (err, res) {
+                    if (res) {
+                        return done(null, {user_id: userId});
+                    } else {
+                        return done(null, false);
+                    }
+                });
+            }
+        });
+    }
+));
+
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -57,6 +89,9 @@ app.use(function(req, res, next) {
   err.status = 404;
   next(err);
 });
+
+
+
 
 // error handler
 app.use(function(err, req, res, next) {

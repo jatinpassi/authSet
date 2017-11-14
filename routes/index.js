@@ -1,7 +1,5 @@
 var express = require('express');
 var passport = require('passport');
-const { check, validationResult } = require('express-validator/check');
-const { matchedData, sanitize } = require('express-validator/filter');
 var router = express.Router();
 
 var bcrypt = require('bcrypt');
@@ -11,14 +9,23 @@ const saltRounds = 10;
 router.get('/', function(req, res, next) {
     res.redirect("/index");
 });
-router.get('/index', function(req, res, next) {
+router.get('/index',authenticationMiddleware(), function(req, res, next) {
     console.log(req.user);
     console.log(req.isAuthenticated());
     res.render('index', { load:"content" , error:true});
 });
 router.get('/login', function(req, res, next) {
-    res.render('index', { load:"content" });
+    res.render('index', { load:"login" });
 });
+router.get('/logout', function(req, res, next) {
+    req.logOut();
+    req.session.destroy();
+    res.redirect('/');
+});
+router.post('/login',passport.authenticate('local', {
+    successRedirect: '/index',
+    failureRedirect: '/login'
+}));
 router.get('/signup', function(req, res, next) {
 
     res.render('index', { load:"signup" });
@@ -83,6 +90,8 @@ router.post('/signup', function(req, res, next) {
 router.get('/profile',authenticationMiddleware(), function(req, res, next) {
     res.render('index', { load:"profile" });
 });
+
+
 passport.serializeUser(function(user_id, done) {
     done(null, user_id);
 });
@@ -90,6 +99,8 @@ passport.serializeUser(function(user_id, done) {
 passport.deserializeUser(function(user_id, done) {
         done(null, user_id);
 });
+
+
 function authenticationMiddleware(){
     return (req, res, next)=>{
         if (req.isAuthenticated()) return next();
